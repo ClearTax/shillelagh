@@ -118,8 +118,8 @@ class Adapter:
         will be executed.
 
         Adapter can access these parameters in __init__ by allowing arguments:
-        - updated_uri (str): = ""
-        - updated_operation (str) = ""
+        - updated_uri: str = ""
+        - updated_operation: str = ""
 
         Parameters:
         - uri (str): The URI containing information for parsing (table name from SQL query).
