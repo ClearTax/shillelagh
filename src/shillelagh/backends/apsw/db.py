@@ -302,7 +302,9 @@ class Cursor:  # pylint: disable=too-many-instance-attributes
             kwargs = dict()
 
         if adapter.supports_query_manipulation(operation):
+            _logger.info(f"adapter : {adapter} supports query manipulation")
             uri, operation = adapter.parse_operation_and_uri(uri, operation)
+            _logger.info(f"adapter: {adapter}; updated_uri : {uri}; updated_operation : {operation}")
             if execution_count == 0:
                 return operation
 
