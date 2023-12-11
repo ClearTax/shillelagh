@@ -12,7 +12,6 @@ FIXED_COST = 666
 
 
 class Adapter:
-
     """
     An adapter to a table.
 
@@ -95,6 +94,46 @@ class Adapter:
         """Parse table name, and return arguments to instantiate adapter."""
         raise NotImplementedError("Subclasses must implement ``parse_uri``")
 
+    @staticmethod
+    def supports_query_manipulation(operation: str) -> bool:
+        """
+        Determines whether the adapter supports query manipulation before execution.
+
+        Parameters:
+        - operation (str): The type of operation to be performed (Whole SQL query).
+
+        Returns:
+        - bool: True if query manipulation is supported, False otherwise.
+        """
+        return False
+
+    @staticmethod
+    def parse_operation_and_uri(uri: str, operation: str) -> Tuple[str, str]:
+        """
+        Parses the operation and uri from the provided URI and operation,
+        considering potential query manipulation.
+
+        If the adapter supports query manipulation, it should return the updated uri and operation
+        for execution. After the virtual table is created using the updated uri, the modified operation
+        will be executed.
+
+        Adapter can access these parameters in __init__ by allowing arguments:
+        - updated_uri: str = ""
+        - updated_operation: str = ""
+
+        Parameters:
+        - uri (str): The URI containing information for parsing (table name from SQL query).
+        - operation (str): The type of operation to be performed (whole SQL query).
+
+        Returns:
+        - Tuple[str, str]: A tuple containing the updated uri and the modified operation.
+
+        Raises:
+        - NotImplementedError: Subclasses must implement this method if they support query manipulation.
+        """
+        raise NotImplementedError("Subclasses must implement ``parse_operation_and_table_name`` if they "
+                                  "``supports_query_manipulation``")
+
     def get_metadata(self) -> Dict[str, Any]:
         """Return any extra metadata about the table."""
         return {}
@@ -112,9 +151,9 @@ class Adapter:
         )
 
     def get_cost(  # pylint: disable=unused-argument
-        self,
-        filtered_columns: List[Tuple[str, Operator]],
-        order: List[Tuple[str, RequestedOrder]],
+            self,
+            filtered_columns: List[Tuple[str, Operator]],
+            order: List[Tuple[str, RequestedOrder]],
     ) -> float:
         """
         Estimate the query cost.
@@ -125,10 +164,10 @@ class Adapter:
         return FIXED_COST
 
     def get_data(
-        self,
-        bounds: Dict[str, Filter],
-        order: List[Tuple[str, RequestedOrder]],
-        **kwargs: Any,
+            self,
+            bounds: Dict[str, Filter],
+            order: List[Tuple[str, RequestedOrder]],
+            **kwargs: Any,
     ) -> Iterator[Row]:
         """
         Yield rows as adapter-specific types.
@@ -144,10 +183,10 @@ class Adapter:
         raise NotImplementedError("Subclasses must implement ``get_data``")
 
     def get_rows(
-        self,
-        bounds: Dict[str, Filter],
-        order: List[Tuple[str, RequestedOrder]],
-        **kwargs: Any,
+            self,
+            bounds: Dict[str, Filter],
+            order: List[Tuple[str, RequestedOrder]],
+            **kwargs: Any,
     ) -> Iterator[Row]:
         """
         Yield rows as native Python types.

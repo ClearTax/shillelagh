@@ -224,6 +224,7 @@ class Cursor:  # pylint: disable=too-many-instance-attributes
         # this is where the magic happens: instead of forcing users to register
         # their virtual tables explicitly, we do it for them when they first try
         # to access them and it fails because the table doesn't exist yet
+        execution_count = 0
         while True:
             try:
                 self._cursor.execute(operation, parameters)
@@ -237,7 +238,8 @@ class Cursor:  # pylint: disable=too-many-instance-attributes
 
                 # create the virtual table
                 uri = message[len(NO_SUCH_TABLE) :]
-                self._create_table(uri)
+                operation = self._create_table(uri, operation, execution_count)
+                execution_count += 1
 
         if uri := self._drop_table_uri(operation):
             adapter, args, kwargs = find_adapter(
@@ -285,7 +287,7 @@ class Cursor:  # pylint: disable=too-many-instance-attributes
                 for col, desc in zip(row, self.description)
             )
 
-    def _create_table(self, uri: str) -> None:
+    def _create_table(self, uri: str, operation: str, execution_count: int) -> str:
         """
         Create a virtual table.
 
@@ -296,6 +298,19 @@ class Cursor:  # pylint: disable=too-many-instance-attributes
             uri = uri[len(prefix) :]
 
         adapter, args, kwargs = find_adapter(uri, self._adapter_kwargs, self._adapters)
+        if not kwargs:
+            kwargs = dict()
+
+        if adapter.supports_query_manipulation(operation):
+            _logger.info(f"adapter : {adapter} supports query manipulation")
+            uri, operation = adapter.parse_operation_and_uri(uri, operation)
+            _logger.info(f"adapter: {adapter}; updated_uri : {uri}; updated_operation : {operation}")
+            if execution_count == 0:
+                return operation
+
+            kwargs["updated_uri"] = uri
+            kwargs["updated_operation"] = operation
+
         formatted_args = ", ".join(
             f"'{serialize(arg)}'"
             for arg in combine_args_kwargs(adapter, *args, **kwargs)
@@ -304,6 +319,8 @@ class Cursor:  # pylint: disable=too-many-instance-attributes
         self._cursor.execute(
             f'CREATE VIRTUAL TABLE "{table_name}" USING {adapter.__name__}({formatted_args})',
         )
+
+        return operation
 
     def _get_description(self) -> Description:
         """
