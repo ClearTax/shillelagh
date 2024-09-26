@@ -234,6 +234,7 @@ class Cursor:  # pylint: disable=too-many-instance-attributes
             except apsw.SQLError as ex:
                 message = ex.args[0]
                 if not message.startswith(NO_SUCH_TABLE):
+                    _logger.error(f"Exception occurred while executing operation : {operation}; exception : {ex}")
                     raise ProgrammingError(message) from ex
 
                 # create the virtual table
